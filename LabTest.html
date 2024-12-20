@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #C0C0C0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #808080;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"], input[type="number"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 10px 0;
+        }
+        button {
+            background: #4CAF50;
+            padding: 10px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+        .user-cards {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .user-card {
+            border: 1px solid #e8a576;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px;
+            width: calc(50% - 20px);
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        .error-message {
+            color: rgb(168, 86, 42);
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>User Search</h1>
+        <input type="number" id="userCount" placeholder="Enter number of users" min="1" />
+        <button id="fetchUsers">Fetch Users</button>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search users..." />
+            <button id="searchButton">Search</button>
+        </div>
+        <div id="errorMessage" class="error-message"></div>
+        <div id="userCards" class="user-cards"></div>
+    </div>
+    <script>
+        const fetchUsersButton = document.getElementById('fetchUsers');
+        const userCountInput = document.getElementById('userCount');
+        const searchButton = document.getElementById('searchButton');
+        const searchInput = document.getElementById('searchInput');
+        const userCardsContainer = document.getElementById('userCards');
+        const errorMessageContainer = document.getElementById('errorMessage');
+
+        fetchUsersButton.addEventListener('click', fetchUsers);
+        searchButton.addEventListener('click', searchUsers);
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchUsers();
+            }
+        });
+
+        function fetchUsers() {
+            const userCount = userCountInput.value;
+            if (!userCount || userCount <= 0) {
+                displayErrorMessage('Please enter a valid number of users.');
+                return;
+            }
+
+            fetch(`https://randomuser.me/api/?results=${userCount}`)
+                .then(response => response.json())
+                .then(data => {
+                    localStorage.setItem('users', JSON.stringify(data.results));
+                    displayUsers(data.results);
+                })
+                .catch(error => {
+                    displayErrorMessage('Failed to fetch users.');
+                });
+        }
+
+        function displayUsers(users) {
+            userCardsContainer.innerHTML = '';
+            users.forEach(user => {
+                const card = document.createElement('div');
+                card.className = 'user-card';
+                card.innerHTML = `
+                    <h3>${user.name.first} ${user.name.last}</h3>
+                    <p>Email: ${user.email}</p>
+                    <p>Phone: ${user.phone}</p>
+                    <img src="${user.picture.medium}" alt="User Picture" />
+                `;
+                userCardsContainer.appendChild(card);
+            });
+        }
+
+        function searchUsers() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const filteredUsers = users.filter(user => 
+                user.name.first.toLowerCase().includes(searchTerm) || 
+                user.name.last.toLowerCase().includes(searchTerm) ||
+                user.email.toLowerCase().includes(searchTerm)
+            );
+            displayUsers(filteredUsers);
+        }
+
+        function displayErrorMessage(message) {
+            errorMessageContainer.textContent = message;
+            setTimeout(() => {
+                errorMessageContainer.textContent = '';
+            }, 3000);
+        }
+
+        // Add event listener to fetch users when the page loads
+        window.addEventListener('load', () => {
+            const storedUsers = localStorage.getItem('users');
+            if (storedUsers) {
+                displayUsers(JSON.parse(storedUsers));
+            }
+        });
+    </script>
+</body>
+</html>
